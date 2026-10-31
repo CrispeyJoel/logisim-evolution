@@ -700,6 +700,10 @@ public class AppPreferences {
   public static final PrefMonitor<Boolean> FollowSystemTheme =
       create(new PrefMonitorBoolean(FOLLOW_SYSTEM_THEME_KEY, false));
 
+  // The user's own theme for each mode, used when following the system theme.
+  public static final String LIGHT_LOOK_AND_FEEL_KEY = "LightLookAndFeel";
+  public static final String DARK_LOOK_AND_FEEL_KEY = "DarkLookAndFeel";
+
   public static final String EDITOR_THEME_DEFAULT = "default";
   public static final String EDITOR_THEME_DARK = "dark";
   public static final String[] EDITOR_THEMES = {

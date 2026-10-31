@@ -376,6 +376,7 @@ class WindowOptions extends OptionsPanel {
         int newIndex = lookAndFeel.getSelectedIndex();
         if (newIndex != index && newIndex >= 0 && newIndex < lookAndFeelInfos.length) {
           index = newIndex;
+          SystemThemeWatcher.remember(lookAndFeelInfos[index].getClassName());
           AppPreferences.LookAndFeel.set(lookAndFeelInfos[index].getClassName());
           // The theme preference listeners have loaded this theme's colors before this refresh.
           AppPreferences.applyThemeColors();

@@ -17,13 +17,20 @@ import java.beans.PropertyChangeListener;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.prefs.Preferences;
 import javax.swing.SwingUtilities;
 
 public final class SystemThemeWatcher {
   private static final long POLL_SECONDS = 3;
 
   // Kept in a field because preference listeners are held weakly.
-  private static final PropertyChangeListener listener = event -> update();
+  private static final PropertyChangeListener listener = event -> {
+    // When the box is ticked, keep the current theme for its mode before following the system.
+    if (AppPreferences.FollowSystemTheme.get()) {
+      remember(AppPreferences.LookAndFeel.get());
+    }
+    update();
+  };
 
   private static ScheduledExecutorService poller;
   private static volatile SystemTheme.Result lastResult;
@@ -39,18 +46,39 @@ public final class SystemThemeWatcher {
   }
 
   /**
-   * Switches the stored look and feel if it does not match the system. An unknown system theme
-   * leaves it unchanged.
+   * Switches the stored look and feel to the remembered one for the system theme. An unknown
+   * system theme leaves it unchanged.
    *
    * @return true if the look and feel was changed
    */
   public static boolean useSystemTheme(SystemTheme.Result result) {
-    if (result == SystemTheme.Result.UNKNOWN) return false;
-    final var dark = result == SystemTheme.Result.DARK;
-    if (AppPreferences.isDarkTheme(AppPreferences.LookAndFeel.get()) == dark) return false;
-    AppPreferences.LookAndFeel.set(
-        (dark ? FlatDarculaLaf.class : FlatIntelliJLaf.class).getName());
+    final var current = AppPreferences.LookAndFeel.get();
+    final var chosen = lookAndFeelFor(AppPreferences.getPrefs(), result, current);
+    if (chosen.equals(current)) return false;
+    AppPreferences.LookAndFeel.set(chosen);
     return true;
+  }
+
+  /** Remembers a look and feel as the user's own for its mode. */
+  public static void remember(String lookAndFeel) {
+    remember(AppPreferences.getPrefs(), lookAndFeel, AppPreferences.isDarkTheme(lookAndFeel));
+  }
+
+  static void remember(Preferences node, String lookAndFeel, boolean dark) {
+    node.put(dark ? AppPreferences.DARK_LOOK_AND_FEEL_KEY
+        : AppPreferences.LIGHT_LOOK_AND_FEEL_KEY, lookAndFeel);
+  }
+
+  static String rememberedLookAndFeel(Preferences node, boolean dark) {
+    return dark
+        ? node.get(AppPreferences.DARK_LOOK_AND_FEEL_KEY, FlatDarculaLaf.class.getName())
+        : node.get(AppPreferences.LIGHT_LOOK_AND_FEEL_KEY, FlatIntelliJLaf.class.getName());
+  }
+
+  // Only reads the node, so an automatic switch never changes what the user chose.
+  static String lookAndFeelFor(Preferences node, SystemTheme.Result result, String current) {
+    if (result == SystemTheme.Result.UNKNOWN) return current;
+    return rememberedLookAndFeel(node, result == SystemTheme.Result.DARK);
   }
 
   private static synchronized void update() {
