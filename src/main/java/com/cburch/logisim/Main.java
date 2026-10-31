@@ -61,7 +61,7 @@ public class Main {
         FlatMacDarkLaf.installLafInfo();
 
         if (AppPreferences.FollowSystemTheme.get()) {
-          SystemThemeWatcher.useSystemTheme(SystemTheme.isDark());
+          SystemThemeWatcher.useSystemTheme(SystemTheme.detect());
         }
         UIManager.setLookAndFeel(AppPreferences.LookAndFeel.get());
         AppPreferences.applyThemeColors();

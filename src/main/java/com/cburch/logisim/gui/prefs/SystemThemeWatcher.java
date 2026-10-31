@@ -26,7 +26,7 @@ public final class SystemThemeWatcher {
   private static final PropertyChangeListener listener = event -> update();
 
   private static ScheduledExecutorService poller;
-  private static volatile Boolean lastDark;
+  private static volatile SystemTheme.Result lastResult;
 
   private SystemThemeWatcher() {
     throw new IllegalStateException("Utility class. No instantiation allowed.");
@@ -39,11 +39,14 @@ public final class SystemThemeWatcher {
   }
 
   /**
-   * Switches the stored look and feel if it does not match the system.
+   * Switches the stored look and feel if it does not match the system. An unknown system theme
+   * leaves it unchanged.
    *
    * @return true if the look and feel was changed
    */
-  public static boolean useSystemTheme(boolean dark) {
+  public static boolean useSystemTheme(SystemTheme.Result result) {
+    if (result == SystemTheme.Result.UNKNOWN) return false;
+    final var dark = result == SystemTheme.Result.DARK;
     if (AppPreferences.isDarkTheme(AppPreferences.LookAndFeel.get()) == dark) return false;
     AppPreferences.LookAndFeel.set(
         (dark ? FlatDarculaLaf.class : FlatIntelliJLaf.class).getName());
@@ -53,7 +56,7 @@ public final class SystemThemeWatcher {
   private static synchronized void update() {
     if (AppPreferences.FollowSystemTheme.get()) {
       if (poller == null) {
-        lastDark = null;
+        lastResult = null;
         poller = Executors.newSingleThreadScheduledExecutor(task -> {
           final var thread = new Thread(task, "SystemThemeWatcher");
           thread.setDaemon(true);
@@ -71,17 +74,17 @@ public final class SystemThemeWatcher {
   private static void poll() {
     // An exception that escapes would cancel all later polls of the scheduled task.
     try {
-      final var dark = SystemTheme.isDark();
-      if (lastDark != null && lastDark == dark) return;
-      lastDark = dark;
-      SwingUtilities.invokeLater(() -> apply(dark));
+      final var result = SystemTheme.detect();
+      if (result == SystemTheme.Result.UNKNOWN || result == lastResult) return;
+      lastResult = result;
+      SwingUtilities.invokeLater(() -> apply(result));
     } catch (RuntimeException e) {
       // Try again at the next poll.
     }
   }
 
-  private static void apply(boolean dark) {
-    if (!AppPreferences.FollowSystemTheme.get() || !useSystemTheme(dark)) return;
+  private static void apply(SystemTheme.Result result) {
+    if (!AppPreferences.FollowSystemTheme.get() || !useSystemTheme(result)) return;
     AppPreferences.applyThemeColors();
     WindowOptions.applyLookAndFeelGlobally(AppPreferences.LookAndFeel.get());
   }
