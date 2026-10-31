@@ -695,6 +695,11 @@ public class AppPreferences {
   public static final PrefMonitor<String> LookAndFeel =
       create(new PrefMonitorString("LookAndFeel", FlatIntelliJLaf.class.getName()));
 
+  // Main writes this key for new installs before this class is loaded, so it must be a constant.
+  public static final String FOLLOW_SYSTEM_THEME_KEY = "FollowSystemTheme";
+  public static final PrefMonitor<Boolean> FollowSystemTheme =
+      create(new PrefMonitorBoolean(FOLLOW_SYSTEM_THEME_KEY, false));
+
   public static final String EDITOR_THEME_DEFAULT = "default";
   public static final String EDITOR_THEME_DARK = "dark";
   public static final String[] EDITOR_THEMES = {
